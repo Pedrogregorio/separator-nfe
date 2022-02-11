@@ -1,0 +1,9 @@
+{
+  "name": "separador-nfe",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "xml2json": "^0.12.0"
+  }
+}
