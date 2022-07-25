@@ -15,9 +15,9 @@ fileSystemPromises.readdir(path.join(__dirname, 'nfe_container')).then((files) =
         try {
           const jsonString = await xmlToJson.toJson(content)
           const nfeFile = JSON.parse(jsonString);
-  
+
           if (!nfeFile.nfeProc) return fileSystemPromises.unlink(path.join(__dirname, 'nfe_container', file));
-  
+
           const businessName = nfeFile.nfeProc.NFe.infNFe.emit.xNome.split(' ').join('_');
           const ncms = nfeFile.nfeProc.NFe.infNFe.det.length > 1 ? nfeFile.nfeProc.NFe.infNFe.det.map((item) => item.prod.NCM) : [nfeFile.nfeProc.NFe.infNFe.det.prod.NCM];
           const typeNfe = nfeFile.nfeProc.NFe.infNFe.ide.tpNF === '0' ? 'entrada' : 'saida';
@@ -25,14 +25,33 @@ fileSystemPromises.readdir(path.join(__dirname, 'nfe_container')).then((files) =
           if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName))) await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName), { recursive: true });
 
           const material = getMaterialTypeName(ncms);
+          const typeDocument = nfeFile.nfeProc.NFe.infNFe.dest.CPF ? 'cpf' : 'cnpj';
+          const yearEmit = nfeFile.nfeProc.NFe.infNFe.ide.dhEmi.substring(0, 4);
 
           if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material))) {
             await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material), { recursive: true });
-            await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material, 'saida'), { recursive: true });
-            await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material, 'entrada'), { recursive: true });
           }
 
-          await createFile(material, businessName, file, content, typeNfe);
+          if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe))) {
+            await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe), { recursive: true });
+          }
+
+          if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit))) {
+            await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit), { recursive: true });
+          }
+
+          if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit, typeDocument))) {
+            await fileSystem.mkdirSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit, typeDocument), { recursive: true });
+          }
+
+          console.table({
+            typeDocument,
+            yearEmit,
+            material,
+            businessName,
+          })
+
+          await createFile(material, businessName, file, content, typeNfe, typeDocument, yearEmit);
 
         } catch (error) {
           console.log('Arquivo inválido: ', file);
@@ -58,10 +77,10 @@ function getMaterialNcm(ncm) {
   if (ncmsMetal.includes(ncm.substring(0, 2))) return 'Metal';
 }
 
-async function createFile(material, businessName, file, content, typeNfe) {
+async function createFile(material, businessName, file, content, typeNfe, typeDocument, yearEmit) {
   try {
-    if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material, file))) {
-      await fileSystemPromises.writeFile(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, file), content, 'utf8');
+    if (!fileSystem.existsSync(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit, typeDocument, file))) {
+      await fileSystemPromises.writeFile(path.join(__dirname, 'nfes_processed', businessName, material, typeNfe, yearEmit, typeDocument, file), content, 'utf8');
     }
     fileSystemPromises.unlink(path.join(__dirname, 'nfe_container', file));
   } catch (error) {
